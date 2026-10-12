@@ -1,0 +1,470 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>JavaBot – IA Chat</title>
+  <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet"/>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg:      #07090f;
+      --surface: #0d1017;
+      --panel:   #131822;
+      --border:  #1e2535;
+      --accent:  #3b82f6;
+      --accent2: #06b6d4;
+      --green:   #10b981;
+      --red:     #f43f5e;
+      --text:    #e2e8f0;
+      --muted:   #64748b;
+      --java:    #f97316;   /* laranja Java */
+      --glow:    rgba(59,130,246,0.15);
+    }
+
+    html, body { height: 100%; background: var(--bg); color: var(--text); font-family: 'Syne', sans-serif; overflow: hidden; }
+
+    body::before {
+      content: '';
+      position: fixed; inset: 0; pointer-events: none; z-index: 0;
+      background:
+        radial-gradient(ellipse 55% 35% at 15% 5%,  rgba(59,130,246,0.10) 0%, transparent 60%),
+        radial-gradient(ellipse 40% 30% at 85% 85%, rgba(249,115,22,0.07) 0%, transparent 55%);
+    }
+
+    .app {
+      display: flex; flex-direction: column; height: 100vh;
+      max-width: 880px; margin: 0 auto; position: relative; z-index: 1;
+    }
+
+    /* ── Header ─────────────────────────────── */
+    header {
+      display: flex; align-items: center; gap: 14px;
+      padding: 18px 28px 16px;
+      border-bottom: 1px solid var(--border);
+      background: rgba(7,9,15,0.8); backdrop-filter: blur(14px);
+    }
+
+    .logo {
+      width: 40px; height: 40px; border-radius: 10px;
+      background: linear-gradient(135deg, var(--accent), var(--accent2));
+      display: flex; align-items: center; justify-content: center;
+      font-size: 1.1rem; box-shadow: 0 0 20px var(--glow);
+      animation: glow-pulse 3s ease-in-out infinite;
+    }
+
+    @keyframes glow-pulse {
+      0%,100% { box-shadow: 0 0 10px var(--glow); }
+      50%      { box-shadow: 0 0 28px rgba(59,130,246,0.4); }
+    }
+
+    .header-info h1 {
+      font-size: 1.1rem; font-weight: 800; letter-spacing: -.02em;
+      background: linear-gradient(90deg, #93c5fd, var(--accent2));
+      -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
+    }
+
+    .header-info p {
+      font-size: 0.68rem; color: var(--muted); font-family: 'DM Mono', monospace; margin-top: 2px;
+    }
+
+    .badges { margin-left: auto; display: flex; align-items: center; gap: 8px; }
+
+    .badge {
+      font-family: 'DM Mono', monospace; font-size: 0.65rem;
+      padding: 3px 9px; border-radius: 20px; border: 1px solid;
+    }
+
+    .badge.java { color: var(--java); border-color: rgba(249,115,22,0.4); background: rgba(249,115,22,0.08); }
+    .badge.api  { color: var(--accent2); border-color: rgba(6,182,212,0.3); background: rgba(6,182,212,0.07); }
+
+    .status-indicator {
+      display: flex; align-items: center; gap: 5px;
+      font-family: 'DM Mono', monospace; font-size: 0.65rem; color: var(--muted);
+    }
+
+    .dot { width: 6px; height: 6px; border-radius: 50%; background: var(--green); animation: blink 2s ease-in-out infinite; }
+    @keyframes blink { 0%,100%{opacity:1} 50%{opacity:.35} }
+
+    /* ── Chat ───────────────────────────────── */
+    .chat-area {
+      flex: 1; overflow-y: auto; padding: 28px 28px 12px;
+      display: flex; flex-direction: column; gap: 20px; scroll-behavior: smooth;
+    }
+
+    .chat-area::-webkit-scrollbar { width: 4px; }
+    .chat-area::-webkit-scrollbar-thumb { background: var(--border); border-radius: 4px; }
+
+    /* Welcome */
+    .welcome { text-align: center; padding: 44px 20px 24px; animation: fade-up .5s ease both; }
+    .welcome .icon { font-size: 2.8rem; margin-bottom: 14px; display: block; filter: drop-shadow(0 0 16px rgba(59,130,246,.5)); }
+    .welcome h2 {
+      font-size: 1.6rem; font-weight: 800; letter-spacing: -.03em; margin-bottom: 10px;
+      background: linear-gradient(135deg, #93c5fd 0%, var(--java) 100%);
+      -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
+    }
+    .welcome p { color: var(--muted); font-size: .88rem; line-height: 1.6; max-width: 400px; margin: 0 auto 26px; }
+
+    .tech-stack {
+      display: inline-flex; gap: 10px; flex-wrap: wrap; justify-content: center;
+      background: var(--panel); border: 1px solid var(--border);
+      border-radius: 12px; padding: 10px 18px; margin-bottom: 24px;
+      font-family: 'DM Mono', monospace; font-size: .72rem; color: var(--muted);
+    }
+
+    .tech-item { display: flex; align-items: center; gap: 5px; }
+    .tech-item span { color: var(--text); }
+
+    .suggestions { display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; }
+
+    .suggestion-btn {
+      background: var(--panel); border: 1px solid var(--border);
+      color: var(--text); padding: 7px 15px; border-radius: 20px;
+      font-size: .78rem; font-family: 'Syne', sans-serif; cursor: pointer;
+      transition: all .2s;
+    }
+
+    .suggestion-btn:hover {
+      border-color: var(--accent); color: #93c5fd;
+      background: rgba(59,130,246,.08); transform: translateY(-1px);
+    }
+
+    /* Messages */
+    .message {
+      display: flex; gap: 10px; animation: fade-up .35s ease both; max-width: 100%;
+    }
+
+    @keyframes fade-up {
+      from { opacity:0; transform: translateY(10px); }
+      to   { opacity:1; transform: translateY(0); }
+    }
+
+    .message.user { flex-direction: row-reverse; }
+
+    .avatar {
+      width: 30px; height: 30px; border-radius: 8px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: .75rem; font-weight: 700; flex-shrink: 0; margin-top: 2px;
+    }
+
+    .avatar.ai   { background: linear-gradient(135deg,var(--accent),var(--accent2)); color:#fff; box-shadow:0 0 12px var(--glow); }
+    .avatar.user { background: var(--panel); border: 1px solid var(--border); font-size:.9rem; }
+
+    .bubble {
+      max-width: 74%; padding: 12px 16px; border-radius: 14px;
+      line-height: 1.65; font-size: .9rem;
+    }
+
+    .message.ai   .bubble { background:var(--panel); border:1px solid var(--border); border-top-left-radius:3px; }
+    .message.user .bubble { background:rgba(59,130,246,.12); border:1px solid rgba(59,130,246,.25); border-top-right-radius:3px; color:#bfdbfe; }
+
+    .bubble strong { color: #93c5fd; }
+
+    .bubble code {
+      font-family:'DM Mono',monospace; background:rgba(255,255,255,.06);
+      padding:2px 6px; border-radius:4px; font-size:.82rem;
+    }
+
+    .bubble pre {
+      background:#050810; border:1px solid var(--border); border-radius:8px;
+      padding:12px; overflow-x:auto; margin-top:10px;
+      font-family:'DM Mono',monospace; font-size:.79rem; line-height:1.5;
+    }
+
+    .bubble pre code { background:none; padding:0; }
+
+    /* Typing */
+    .typing-dots { display:flex; gap:5px; align-items:center; padding:12px 16px; }
+    .typing-dot {
+      width:7px; height:7px; border-radius:50%; background:var(--accent);
+      animation: bounce 1.2s ease-in-out infinite;
+    }
+    .typing-dot:nth-child(2){animation-delay:.2s}
+    .typing-dot:nth-child(3){animation-delay:.4s}
+    @keyframes bounce { 0%,60%,100%{opacity:.3;transform:translateY(0)} 30%{opacity:1;transform:translateY(-5px)} }
+
+    /* Error */
+    .error-box {
+      background:rgba(244,63,94,.07); border:1px solid rgba(244,63,94,.3);
+      color:#fda4af; padding:10px 14px; border-radius:8px;
+      font-family:'DM Mono',monospace; font-size:.8rem;
+    }
+
+    /* ── Input ──────────────────────────────── */
+    .input-area {
+      padding: 14px 28px 22px;
+      background: rgba(7,9,15,.8); backdrop-filter:blur(14px);
+      border-top: 1px solid var(--border);
+    }
+
+    .input-wrap {
+      display:flex; gap:10px; align-items:flex-end;
+      background:var(--panel); border:1px solid var(--border);
+      border-radius:14px; padding:10px 10px 10px 16px;
+      transition: border-color .2s, box-shadow .2s;
+    }
+
+    .input-wrap:focus-within {
+      border-color: var(--accent);
+      box-shadow: 0 0 0 3px rgba(59,130,246,.1);
+    }
+
+    #userInput {
+      flex:1; background:none; border:none; outline:none;
+      color:var(--text); font-family:'Syne',sans-serif; font-size:.9rem;
+      resize:none; min-height:24px; max-height:130px; line-height:1.5; padding:2px 0;
+    }
+
+    #userInput::placeholder { color:var(--muted); }
+
+    #sendBtn {
+      width:38px; height:38px; border-radius:10px; border:none; flex-shrink:0;
+      background:linear-gradient(135deg,var(--accent),var(--accent2));
+      color:#fff; display:flex; align-items:center; justify-content:center;
+      cursor:pointer; transition:all .2s;
+    }
+
+    #sendBtn:hover  { transform:scale(1.05); filter:brightness(1.12); }
+    #sendBtn:active { transform:scale(.96); }
+    #sendBtn:disabled { opacity:.35; cursor:not-allowed; transform:none; }
+
+    .input-footer {
+      display:flex; align-items:center; justify-content:space-between;
+      margin-top:8px; padding:0 2px;
+    }
+
+    .input-hint { font-family:'DM Mono',monospace; font-size:.65rem; color:var(--muted); }
+
+    .backend-badge {
+      font-family:'DM Mono',monospace; font-size:.63rem; color:var(--java);
+      background:rgba(249,115,22,.07); border:1px solid rgba(249,115,22,.25);
+      padding:2px 8px; border-radius:10px;
+    }
+
+    @media(max-width:600px){
+      header,.chat-area,.input-area{padding-left:14px;padding-right:14px;}
+      .bubble{max-width:88%;}
+      .badges .badge{display:none}
+    }
+  </style>
+</head>
+<body>
+<div class="app">
+
+  <header>
+    <div class="logo">☕</div>
+    <div class="header-info">
+      <h1>JavaBot</h1>
+      <p>Spring Boot · Anthropic Claude</p>
+    </div>
+    <div class="badges">
+      <span class="badge java">Java 17</span>
+      <span class="badge api">Claude API</span>
+    </div>
+    <div class="status-indicator">
+      <div class="dot" id="statusDot"></div>
+      <span id="statusText">online</span>
+    </div>
+  </header>
+
+  <div class="chat-area" id="chatArea">
+    <div class="welcome" id="welcome">
+      <span class="icon">☕</span>
+      <h2>Olá! Sou o JavaBot</h2>
+      <p>Um assistente de IA com backend em Java (Spring Boot). Faça qualquer pergunta!</p>
+
+      <div class="tech-stack">
+        <div class="tech-item">☕ <span>Java 17</span></div>
+        <div class="tech-item">🍃 <span>Spring Boot 3</span></div>
+        <div class="tech-item">🤖 <span>Claude API</span></div>
+        <div class="tech-item">🌐 <span>HTML/CSS/JS</span></div>
+      </div>
+
+      <div class="suggestions">
+        <button class="suggestion-btn" onclick="suggest('Qual é a capital do Brasil?')">🌎 Qual capital do Brasil?</button>
+        <button class="suggestion-btn" onclick="suggest('Quanto é 2 + 2?')">🔢 Quanto é 2 + 2?</button>
+        <button class="suggestion-btn" onclick="suggest('O que é Java?')">☕ O que é Java?</button>
+        <button class="suggestion-btn" onclick="suggest('Me conte uma piada')">😄 Conta uma piada</button>
+        <button class="suggestion-btn" onclick="suggest('Como funciona a internet?')">🌐 Como funciona a internet?</button>
+        <button class="suggestion-btn" onclick="suggest('Qual é o maior planeta do sistema solar?')">🪐 Maior planeta?</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="input-area">
+    <div class="input-wrap">
+      <textarea id="userInput" placeholder="Digite sua pergunta..." rows="1"></textarea>
+      <button id="sendBtn" onclick="sendMessage()" title="Enviar (Enter)">
+        <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round">
+          <line x1="22" y1="2" x2="11" y2="13"/>
+          <polygon points="22 2 15 22 11 13 2 9 22 2"/>
+        </svg>
+      </button>
+    </div>
+    <div class="input-footer">
+      <span class="input-hint">Enter para enviar · Shift+Enter para nova linha</span>
+      <span class="backend-badge">☕ Backend Java</span>
+    </div>
+  </div>
+
+</div>
+
+<script>
+  // ── Estado ─────────────────────────────────────────────────
+  const chatArea   = document.getElementById('chatArea');
+  const userInput  = document.getElementById('userInput');
+  const sendBtn    = document.getElementById('sendBtn');
+  const welcome    = document.getElementById('welcome');
+
+  let history  = [];   // histórico de conversa
+  let loading  = false;
+
+  // ── Auto-resize textarea ────────────────────────────────────
+  userInput.addEventListener('input', () => {
+    userInput.style.height = 'auto';
+    userInput.style.height = Math.min(userInput.scrollHeight, 130) + 'px';
+  });
+
+  userInput.addEventListener('keydown', e => {
+    if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMessage(); }
+  });
+
+  // ── Sugestões ───────────────────────────────────────────────
+  function suggest(text) {
+    userInput.value = text;
+    sendMessage();
+  }
+
+  // ── Adiciona mensagem na tela ───────────────────────────────
+  function addMessage(role, content) {
+    if (welcome) welcome.style.display = 'none';
+
+    const wrap = document.createElement('div');
+    wrap.className = `message ${role}`;
+
+    const av = document.createElement('div');
+    av.className = `avatar ${role}`;
+    av.textContent = role === 'ai' ? '☕' : '👤';
+
+    const bubble = document.createElement('div');
+    bubble.className = 'bubble';
+    bubble.innerHTML = formatText(content);
+
+    wrap.appendChild(av);
+    wrap.appendChild(bubble);
+    chatArea.appendChild(wrap);
+    scrollBottom();
+    return bubble;
+  }
+
+  // ── Formata markdown simples ────────────────────────────────
+  function formatText(text) {
+    text = text.replace(/```(\w*)\n?([\s\S]*?)```/g, (_, lang, code) =>
+      `<pre><code>${esc(code.trim())}</code></pre>`
+    );
+    text = text.replace(/`([^`\n]+)`/g, '<code>$1</code>');
+    text = text.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
+    text = text.replace(/\n/g, '<br>');
+    return text;
+  }
+
+  function esc(s) {
+    return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  }
+
+  // ── Indicador de digitação ──────────────────────────────────
+  function showTyping() {
+    const wrap = document.createElement('div');
+    wrap.className = 'message ai'; wrap.id = 'typing';
+    const av = document.createElement('div');
+    av.className = 'avatar ai'; av.textContent = '☕';
+    const bubble = document.createElement('div');
+    bubble.className = 'bubble';
+    bubble.innerHTML = '<div class="typing-dots"><div class="typing-dot"></div><div class="typing-dot"></div><div class="typing-dot"></div></div>';
+    wrap.appendChild(av); wrap.appendChild(bubble);
+    chatArea.appendChild(wrap);
+    scrollBottom();
+  }
+
+  function hideTyping() {
+    const t = document.getElementById('typing');
+    if (t) t.remove();
+  }
+
+  function scrollBottom() {
+    chatArea.scrollTo({ top: chatArea.scrollHeight, behavior: 'smooth' });
+  }
+
+  // ── Envia mensagem para o backend Java ─────────────────────
+  async function sendMessage() {
+    const text = userInput.value.trim();
+    if (!text || loading) return;
+
+    loading = true;
+    sendBtn.disabled = true;
+    userInput.value = '';
+    userInput.style.height = 'auto';
+
+    addMessage('user', text);
+    showTyping();
+
+    try {
+      const res = await fetch('/api/chat', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ message: text, history })
+      });
+
+      hideTyping();
+
+      const data = await res.json();
+
+      if (!data.success) throw new Error(data.error || 'Erro desconhecido');
+
+      // Adiciona ao histórico
+      history.push({ role: 'user',      content: text });
+      history.push({ role: 'assistant', content: data.reply });
+
+      addMessage('ai', data.reply);
+
+    } catch (err) {
+      hideTyping();
+      const wrap = document.createElement('div');
+      wrap.className = 'message ai';
+      const av = document.createElement('div');
+      av.className = 'avatar ai'; av.textContent = '☕';
+      const bubble = document.createElement('div');
+      bubble.className = 'bubble';
+      bubble.innerHTML = `<div class="error-box">⚠️ ${err.message}</div>`;
+      wrap.appendChild(av); wrap.appendChild(bubble);
+      chatArea.appendChild(wrap);
+      scrollBottom();
+    }
+
+    loading = false;
+    sendBtn.disabled = false;
+    userInput.focus();
+  }
+
+  // ── Verifica se o backend está no ar ───────────────────────
+  async function checkHealth() {
+    const dot  = document.getElementById('statusDot');
+    const text = document.getElementById('statusText');
+    try {
+      const r = await fetch('/api/health');
+      if (r.ok) {
+        dot.style.background = '#10b981';
+        text.textContent = 'online';
+      } else { throw new Error(); }
+    } catch {
+      dot.style.background = '#f43f5e';
+      text.textContent = 'offline';
+    }
+  }
+
+  checkHealth();
+  setInterval(checkHealth, 30000);
+</script>
+</body>
+</html>
